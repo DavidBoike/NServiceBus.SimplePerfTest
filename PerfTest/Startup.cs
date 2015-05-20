@@ -34,6 +34,9 @@ namespace PerfTest
                     for (int i = 0; i < target; i++)
                         Bus.SendLocal(new SimpleMessage());
 
+                    Console.WriteLine();
+                    Console.WriteLine("Sending complete. Waiting for receive completion...");
+
                     while (!Stats.Completed)
                         Thread.Sleep(5000);
                 }
