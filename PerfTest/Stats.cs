@@ -14,6 +14,7 @@ namespace PerfTest
     public static class Stats
     {
         private static int counter = 0;
+        private static int targetCount = -1;
         private static Stopwatch watch = new Stopwatch();
         private static BusConfiguration busConfig;
 
@@ -22,18 +23,33 @@ namespace PerfTest
             busConfig = cfg;
         }
 
-        public static void Start()
+        public static void Start(int target)
         {
+            Completed = false;
             counter = 0;
+            targetCount = target;
             watch.Reset();
             watch.Start();
         }
 
-        public static void StopAndReport()
+        public static bool Completed { get; private set; }
+
+        public static void Increment()
         {
+            int newValue = Interlocked.Increment(ref counter);
+
+            if (newValue < targetCount)
+            {
+                if (newValue % 100 == 0) 
+                    Console.Write("\rProgress: {0}/{1}", counter, targetCount);
+                return;
+            }
+
+            if (targetCount < 0)
+                return;
+            
             watch.Stop();
-            int finalCounter = counter;
-            double seconds = watch.Elapsed.TotalSeconds;
+            Console.WriteLine();
 
             var transport = busConfig.GetSettings().GetConfigSection<TransportConfig>();
             double throughput = (double) counter/watch.Elapsed.TotalSeconds;
@@ -42,17 +58,15 @@ namespace PerfTest
             Console.WriteLine("=====================");
             Console.WriteLine("=== TEST RESULTS ===");
             Console.WriteLine("=====================");
-            Console.WriteLine("Messages Processed: {0}", counter);
+            Console.WriteLine("Messages Processed: {0}", targetCount);
             Console.WriteLine("Elapsed Time: {0}", watch.Elapsed);
             Console.WriteLine("Receive Threads: {0}", transport.MaximumConcurrencyLevel);
             Console.WriteLine("Msgs/second: {0}", throughput);
             Console.WriteLine("Msgs/thread/sec: {0}", throughputPerThread);
             Console.WriteLine("=====================");
-        }
+            Console.WriteLine();
 
-        public static void Increment()
-        {
-            Interlocked.Increment(ref counter);
+            Completed = true;
         }
     }
 }
